@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+enum StatutDemande {
+  EN_ATTENTE
+  ACCEPTE
+  EN_COURS
+  TERMINE
+  ANNULE
+}
+
+enum StatutPaiement {
+  EN_ATTENTE
+  PAYE
+  ECHOUE
+  REVERSE
+}
+
+enum ModePaiement {
+  MOBILE_MONEY
+  CASH
+  ACOMPTE
+}
+
+model Utilisateur {
+  id             String      @id @default(uuid())
+  nom            String
+  prenom         String
+  telephone      String      @unique
+  motDePasse     String
+  dateInscription DateTime   @default(now())
+  statutCompte   String      @default("ACTIF")
+  
+  // Relations d'héritage simulées (Un utilisateur est soit un client, soit un mécanicien)
+  client         Client?
+  mecanicien     Mecanicien?
+  administrateur Administrateur?
+}
+
+model Client {
+  id               String            @id
+  utilisateur      Utilisateur       @relation(fields: [id], references: [id], onDelete: Cascade)
+  demandes         DemandeDepannage[]
+}
+
+model Mecanicien {
+  id               String            @id
+  utilisateur      Utilisateur       @relation(fields: [id], references: [id], onDelete: Cascade)
+  nomGarage        String?
+  latitude         Float
+  longitude        Float
+  geohash          String            // Indexé pour la recherche rapide en texte
+  estDisponible    Boolean           @default(true)
+  noteMoyenne      Float             @default(5.0)
+  estVerifie       Boolean           @default(false)
+  
+  demandes         DemandeDepannage[]
+  specialites      MecanicienSpecialite[]
+
+  @@index([geohash]) // Index standard pour accélérer le filtrage textuel par zone
+  @@index([latitude, longitude]) // Pré-filtrage rapide par bounding box avant calcul de distance exacte
+}
+model Administrateur{
+  id               String            @id
+  utilisateur      Utilisateur       @relation(fields: [id], references: [id], onDelete:Cascade)
+  niveauAcces      String            @default("SUPER_ADMIN")                                     
+}
+
+model Specialite {
+  id          Int                    @id @default(autoincrement())
+  nomService  String                 @unique // ex: "Vulcanisateur", "Électricien"
+  description String?
+  mecaniciens MecanicienSpecialite[]
+}
+
+// Table de liaison Many-to-Many entre Mecanicien et Specialite
+model MecanicienSpecialite {
+  mecanicienId String
+  mecanicien   Mecanicien @relation(fields: [mecanicienId], references: [id], onDelete: Cascade)
+  specialiteId Int
+  specialite   Specialite @relation(fields: [specialiteId], references: [id], onDelete: Cascade)
+
+  @@id([mecanicienId, specialiteId])
+}
+
+model DemandeDepannage {
+  id               String        @id @default(uuid())
+  clientId         String
+  client           Client        @relation(fields: [clientId], references: [id])
+  mecanicienId     String
+  mecanicien       Mecanicien    @relation(fields: [mecanicienId], references: [id])
+  
+  latitudePanne    Float
+  longitudePanne   Float
+  descriptionPanne String
+  statut           StatutDemande @default(EN_ATTENTE)
+  dateCreation     DateTime      @default(now())
+  dateAcceptation  DateTime?
+  dateDebut        DateTime?
+  dateFin          DateTime?
+  motifAnnulation  String?
+  prixConvenu      Decimal?      @db.Decimal(10, 2)
+  
+  paiement         Paiement?
+  avis             Avis?
+
+  @@index([clientId])
+  @@index([mecanicienId])
+  @@index([statut])
+}
+
+model Paiement {
+  id                   String         @id @default(uuid())
+  demandeId            String         @unique
+  demande              DemandeDepannage @relation(fields: [demandeId], references: [id])
+  
+  montantTotal         Decimal        @db.Decimal(10, 2)
+  commissionPlateforme Decimal        @db.Decimal(10, 2)
+  partMecanicien       Decimal        @db.Decimal(10, 2)
+  modePaiement         ModePaiement
+  statutPaiement       StatutPaiement @default(EN_ATTENTE)
+  referenceTransaction String?        @unique // ID de transaction MTN / Orange Money
+  dateCreation         DateTime       @default(now())
+  dateMiseAJourStatut  DateTime?
+}
+
+model Avis {
+  id           String           @id @default(uuid())
+  demandeId    String           @unique
+  demande      DemandeDepannage @relation(fields: [demandeId], references: [id])
+  
+  note         Int
+  commentaire  String?
+  date         DateTime         @default(now())
+}

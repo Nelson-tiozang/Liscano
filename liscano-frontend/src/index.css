@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  /* Palette — béton routier + accent gilet de sécurité, pas de cliché IA */
+  --color-bg: #edeae3; /* béton / poussière d'asphalte */
+  --color-surface: #ffffff;
+  --color-surface-alt: #f6f4ef;
+  --color-ink: #1b1f27; /* charcoal-marine, texte principal */
+  --color-ink-muted: #6b7280;
+  --color-navy: #22303f; /* bandeau sombre (header/sidebar) */
+  --color-navy-light: #324357;
+  --color-amber: #ff7a1a; /* accent primaire, hazard */
+  --color-amber-dark: #e2660c;
+  --color-green: #2e9e5b; /* disponible / payé / succès */
+  --color-green-light: #e5f4ec;
+  --color-red: #d64545; /* indisponible / annulé / échoué */
+  --color-red-light: #fbeaea;
+  --color-amber-light: #fff1e2;
+
+  --font-display: "Oswald", "Arial Narrow", sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+html {
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background-color: var(--color-bg);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Motif "bande de signalisation" — signature Liscano, utilisé avec parcimonie */
+.hazard-stripe {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-amber) 0px,
+    var(--color-amber) 10px,
+    var(--color-navy) 10px,
+    var(--color-navy) 20px
+  );
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
